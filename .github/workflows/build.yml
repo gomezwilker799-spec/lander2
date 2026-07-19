@@ -1,4 +1,4 @@
-name: Build and Sign Discord Tweak
+name: Build Discord Tweak
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Theos (oficial, incluye toolchain y ldid)
+      - name: Install Theos (oficial)
         run: |
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
@@ -16,12 +16,6 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           make
-
-      - name: Sign dylib using Theos ldid
-        run: |
-          export THEOS=$HOME/theos
-          DYLIB=$(find .theos/obj/debug -name "*.dylib" | head -1)
-          $THEOS/bin/ldid -S "$DYLIB"
 
       - name: Prepare artifact
         run: |
