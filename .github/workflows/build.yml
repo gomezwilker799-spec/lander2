@@ -12,6 +12,11 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
+      - name: Install dpkg and other build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg-dev
+
       - name: Download iOS SDK
         run: |
           mkdir -p $HOME/theos/sdks
