@@ -32,14 +32,29 @@
         NSError *err;
         [engine startAndReturnError:&err];
 
-        // Mostrar alerta de confirmación
+        // Mostrar alerta de confirmación (forma moderna, sin keyWindow obsoleto)
         dispatch_async(dispatch_get_main_queue(), ^{
             UIAlertController *alert = [UIAlertController
                 alertControllerWithTitle:@"DiscordPro"
                 message:@"✅ Tweak activado correctamente.\nPitch + Clipper extremo funcionando."
                 preferredStyle:UIAlertControllerStyleAlert];
             [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-            UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+
+            // Obtener la ventana clave de la escena activa
+            UIWindow *keyWindow = nil;
+            for (UIWindowScene *windowScene in [UIApplication sharedApplication].connectedScenes) {
+                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                    for (UIWindow *window in windowScene.windows) {
+                        if (window.isKeyWindow) {
+                            keyWindow = window;
+                            break;
+                        }
+                    }
+                    if (keyWindow) break;
+                }
+            }
+
+            UIViewController *rootVC = keyWindow.rootViewController;
             [rootVC presentViewController:alert animated:YES completion:nil];
         });
     });
