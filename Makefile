@@ -7,6 +7,6 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = DiscordPro
 DiscordPro_FILES = Tweak.xm
 DiscordPro_CFLAGS = -fobjc-arc
-DiscordPro_FRAMEWORKS = AVFoundation AudioToolbox UIKit
+DiscordPro_FRAMEWORKS = CoreFoundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
