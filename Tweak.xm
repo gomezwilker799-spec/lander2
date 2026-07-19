@@ -1,48 +1,13 @@
 #import <UIKit/UIKit.h>
-#import <objc/runtime.h>
 
-// Variable para el botón
-static UIButton *floatingButton = nil;
+// Clase que maneja el botón
+@interface DiscordProController : NSObject
+- (void)buttonTapped:(id)sender;
+@end
 
-// Función para mostrar el botón en la ventana principal
-static void addFloatingButton() {
-    if (floatingButton) return;
-
-    // Obtener la ventana activa
-    UIWindow *targetWindow = nil;
-    for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-        if ([scene isKindOfClass:[UIWindowScene class]]) {
-            UIWindowScene *windowScene = (UIWindowScene *)scene;
-            if (windowScene.activationState == UISceneActivationStateForegroundActive) {
-                for (UIWindow *window in windowScene.windows) {
-                    if (window.isKeyWindow) {
-                        targetWindow = window;
-                        break;
-                    }
-                }
-                if (targetWindow) break;
-            }
-        }
-    }
-    if (!targetWindow) return;
-
-    floatingButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    floatingButton.frame = CGRectMake(targetWindow.bounds.size.width - 80,
-                                      targetWindow.bounds.size.height - 150,
-                                      60, 60);
-    floatingButton.layer.cornerRadius = 30;
-    floatingButton.backgroundColor = [UIColor colorWithRed:1.0 green:0.3 blue:0.5 alpha:0.9];
-    [floatingButton setTitle:@"🎤" forState:UIControlStateNormal];
-    floatingButton.titleLabel.font = [UIFont systemFontOfSize:28];
-    [floatingButton addTarget:floatingButton action:@selector(buttonTapped) forControlEvents:UIControlEventTouchUpInside];
-    [targetWindow addSubview:floatingButton];
-}
-
-// Acción del botón
-static void buttonTapped() {
-    // Aquí puedes poner cualquier cosa, por ejemplo mostrar una alerta
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"OK" message:@"Funciona" preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+@implementation DiscordProController
+- (void)buttonTapped:(id)sender {
+    // Obtener la ventana activa para mostrar la alerta
     UIWindow *keyWindow = nil;
     for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
         if ([scene isKindOfClass:[UIWindowScene class]]) {
@@ -53,16 +18,52 @@ static void buttonTapped() {
             }
         }
     }
-    if (keyWindow) {
-        [keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
-    }
-}
+    if (!keyWindow) return;
 
-// Constructor que se ejecuta al cargar el dylib
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"OK"
+                                                                   message:@"✅ Dylib cargado y funcionando"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
+}
+@end
+
 __attribute__((constructor))
 static void loadMe() {
-    // Esperamos 1 segundo para que Discord termine de cargar
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        addFloatingButton();
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        // Obtener la ventana principal
+        UIWindow *targetWindow = nil;
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                    for (UIWindow *window in windowScene.windows) {
+                        if (window.isKeyWindow) {
+                            targetWindow = window;
+                            break;
+                        }
+                    }
+                    if (targetWindow) break;
+                }
+            }
+        }
+        if (!targetWindow) return;
+
+        // Crear el botón flotante
+        UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+        button.frame = CGRectMake(targetWindow.bounds.size.width - 80,
+                                  targetWindow.bounds.size.height - 150,
+                                  60, 60);
+        button.layer.cornerRadius = 30;
+        button.backgroundColor = [UIColor colorWithRed:1.0 green:0.3 blue:0.5 alpha:0.9];
+        [button setTitle:@"🎤" forState:UIControlStateNormal];
+        button.titleLabel.font = [UIFont systemFontOfSize:28];
+
+        // El target es una instancia de DiscordProController
+        static DiscordProController *controller = nil;
+        if (!controller) controller = [[DiscordProController alloc] init];
+        [button addTarget:controller action:@selector(buttonTapped:) forControlEvents:UIControlEventTouchUpInside];
+
+        [targetWindow addSubview:button];
     });
 }
