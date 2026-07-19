@@ -1,14 +1,86 @@
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
 
-// Variables globales
+// ---------------------------------------------------
+// Variables globales para el audio
+// ---------------------------------------------------
 static AVAudioEngine *engine = nil;
 static AVAudioUnitTimePitch *pitchNode = nil;
 static AVAudioUnitDistortion *clipperNode = nil;
 static AVAudioMixerNode *mixerNode = nil;
-static UIButton *floatingButton = nil;
 
-// Configurar la cadena de audio
+// ---------------------------------------------------
+// Controlador que gestiona el botón flotante y el panel
+// ---------------------------------------------------
+@interface DiscordProController : NSObject
+- (void)addFloatingButton;
+- (void)showPanel:(id)sender;
+@end
+
+@implementation DiscordProController
+- (void)addFloatingButton {
+    // Obtener la ventana activa (UIWindowScene)
+    UIWindow *targetWindow = nil;
+    for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+        if (scene.activationState == UISceneActivationStateForegroundActive &&
+            [scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            for (UIWindow *window in windowScene.windows) {
+                if (window.isKeyWindow) {
+                    targetWindow = window;
+                    break;
+                }
+            }
+            if (targetWindow) break;
+        }
+    }
+    if (!targetWindow) return;
+
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+    button.frame = CGRectMake(targetWindow.bounds.size.width - 80,
+                              targetWindow.bounds.size.height - 150,
+                              60, 60);
+    button.layer.cornerRadius = 30;
+    button.backgroundColor = [UIColor colorWithRed:1.0 green:0.3 blue:0.5 alpha:0.9];
+    [button setTitle:@"🎤" forState:UIControlStateNormal];
+    button.titleLabel.font = [UIFont systemFontOfSize:28];
+    [button addTarget:self action:@selector(showPanel:) forControlEvents:UIControlEventTouchUpInside];
+
+    [targetWindow addSubview:button];
+}
+
+- (void)showPanel:(id)sender {
+    // Obtener la ventana clave actual
+    UIWindow *keyWin = nil;
+    for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+        if (scene.activationState == UISceneActivationStateForegroundActive &&
+            [scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            for (UIWindow *window in windowScene.windows) {
+                if (window.isKeyWindow) {
+                    keyWin = window;
+                    break;
+                }
+            }
+            if (keyWin) break;
+        }
+    }
+    if (!keyWin) return;
+
+    UIViewController *rootVC = keyWin.rootViewController;
+    while (rootVC.presentedViewController) rootVC = rootVC.presentedViewController;
+
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"DiscordPro"
+                                                                   message:@"✅ Tweak activado\nEfectos funcionando"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [rootVC presentViewController:alert animated:YES completion:nil];
+}
+@end
+
+// ---------------------------------------------------
+// Configuración de la cadena de audio
+// ---------------------------------------------------
 static void setupAudio(id inputNode) {
     if (engine) return;
     engine = [inputNode valueForKey:@"engine"];
@@ -36,57 +108,9 @@ static void setupAudio(id inputNode) {
     [engine startAndReturnError:&err];
 }
 
-// Obtener la ventana clave exclusivamente con UIWindowScene (sin fallback obsoleto)
-static UIWindow *keyWindow(void) {
-    for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-        if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-            UIWindowScene *windowScene = (UIWindowScene *)scene;
-            for (UIWindow *window in windowScene.windows) {
-                if (window.isKeyWindow) {
-                    return window;
-                }
-            }
-        }
-    }
-    return nil;
-}
-
-// Añadir el botón flotante a la ventana clave
-static void addFloatingButton() {
-    if (floatingButton) return;
-
-    UIWindow *targetWindow = keyWindow();
-    if (!targetWindow) return;
-
-    floatingButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    floatingButton.frame = CGRectMake(targetWindow.bounds.size.width - 80,
-                                      targetWindow.bounds.size.height - 150,
-                                      60, 60);
-    floatingButton.layer.cornerRadius = 30;
-    floatingButton.backgroundColor = [UIColor colorWithRed:1.0 green:0.3 blue:0.5 alpha:0.9];
-    [floatingButton setTitle:@"🎤" forState:UIControlStateNormal];
-    floatingButton.titleLabel.font = [UIFont systemFontOfSize:28];
-    [floatingButton addTarget:floatingButton action:@selector(showPanel) forControlEvents:UIControlEventTouchUpInside];
-
-    [targetWindow addSubview:floatingButton];
-}
-
-// Mostrar el panel de confirmación
-static void showPanel() {
-    UIWindow *targetKeyWindow = keyWindow();
-    if (!targetKeyWindow) return;
-
-    UIViewController *rootVC = targetKeyWindow.rootViewController;
-    while (rootVC.presentedViewController) rootVC = rootVC.presentedViewController;
-
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"DiscordPro"
-                                                                   message:@"✅ Tweak activado\nEfectos funcionando"
-                                                            preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-    [rootVC presentViewController:alert animated:YES completion:nil];
-}
-
-// ---- Gancho en el micrófono ----
+// ---------------------------------------------------
+// Gancho en el micrófono
+// ---------------------------------------------------
 %hook AVAudioInputNode
 - (void)installTapOnBus:(AVAudioNodeBus)bus
              bufferSize:(AVAudioFrameCount)bufferSize
@@ -98,7 +122,11 @@ static void showPanel() {
     dispatch_once(&onceToken, ^{
         setupAudio(self);
         dispatch_async(dispatch_get_main_queue(), ^{
-            addFloatingButton();
+            static DiscordProController *controller = nil;
+            if (!controller) {
+                controller = [[DiscordProController alloc] init];
+            }
+            [controller addFloatingButton];
         });
     });
 
