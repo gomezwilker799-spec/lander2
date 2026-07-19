@@ -1,4 +1,4 @@
-name: Build Discord Tweak
+name: Build Discord Library
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -12,7 +12,7 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Build tweak
+      - name: Build library
         run: |
           cd $GITHUB_WORKSPACE
           make
