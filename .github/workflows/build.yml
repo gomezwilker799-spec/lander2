@@ -12,11 +12,6 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fakeroot dpkg-dev libio-compress-perl
-
       - name: Download iOS SDK
         run: |
           mkdir -p $HOME/theos/sdks
@@ -26,13 +21,18 @@ jobs:
           mv sdks-master/*.sdk .
           rm -rf sdks-master sdk.zip
 
-      - name: Build tweak
+      - name: Build tweak (solo el .dylib)
         run: |
           cd $GITHUB_WORKSPACE
-          make package
+          make
+
+      - name: Find and prepare dylib
+        run: |
+          mkdir -p output
+          find .theos -name "*.dylib" -exec cp {} output/ \;
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DiscordPro
-          path: packages/*.deb
+          name: DiscordPro-dylib
+          path: output/
