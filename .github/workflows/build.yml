@@ -6,31 +6,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Theos
+      - name: Install Theos (oficial, incluye vendor y SDK)
         run: |
-          git clone --depth=1 https://github.com/theos/theos.git $HOME/theos
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
-
-      - name: Get vendor and SDK
-        run: |
-          cd $HOME/theos
-          # Descargar vendor (bibliotecas necesarias)
-          mkdir -p vendor
-          cd vendor
-          curl -L -o vendor.zip https://github.com/theos/vendor/archive/refs/heads/master.zip
-          unzip -q vendor.zip
-          mv vendor-master/include .
-          mv vendor-master/lib .
-          rm -rf vendor-master vendor.zip
-          # Volver a theos y descargar SDK
-          cd $HOME/theos
-          mkdir -p sdks
-          cd sdks
-          curl -L -o sdk.zip https://github.com/theos/sdks/archive/refs/heads/master.zip
-          unzip -q sdk.zip
-          mv sdks-master/*.sdk .
-          rm -rf sdks-master sdk.zip
 
       - name: Build tweak (solo el .dylib)
         run: |
