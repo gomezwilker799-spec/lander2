@@ -8,7 +8,7 @@ static AVAudioUnitDistortion *clipperNode = nil;
 static AVAudioMixerNode *mixerNode = nil;
 static UIButton *floatingButton = nil;
 
-// Configurar cadena de audio
+// Configurar la cadena de audio (se llama una sola vez)
 static void setupAudio(id inputNode) {
     if (engine) return;
     engine = [inputNode valueForKey:@"engine"];
@@ -36,23 +36,25 @@ static void setupAudio(id inputNode) {
     [engine startAndReturnError:&err];
 }
 
-// Añadir el botón flotante a la ventana activa de Discord
-static void addFloatingButton() {
-    if (floatingButton) return;
-
-    UIWindow *targetWindow = nil;
+// Obtener la ventana clave actual de forma segura (iOS 13+)
+static UIWindow *keyWindow(void) {
     for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
         if (scene.activationState == UISceneActivationStateForegroundActive) {
             for (UIWindow *window in scene.windows) {
                 if (window.isKeyWindow) {
-                    targetWindow = window;
-                    break;
+                    return window;
                 }
             }
-            if (targetWindow) break;
         }
     }
-    if (!targetWindow) targetWindow = [UIApplication sharedApplication].windows.firstObject;
+    return [UIApplication sharedApplication].windows.firstObject;
+}
+
+// Añadir el botón flotante a la ventana principal de Discord
+static void addFloatingButton() {
+    if (floatingButton) return;
+
+    UIWindow *targetWindow = keyWindow();
     if (!targetWindow) return;
 
     floatingButton = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -68,32 +70,19 @@ static void addFloatingButton() {
     [targetWindow addSubview:floatingButton];
 }
 
-// Mostrar panel de confirmación (sin usar keyWindow obsoleto)
+// Mostrar el panel de confirmación
 static void showPanel() {
-    // Obtener la ventana clave de forma moderna
-    UIWindow *keyWindow = nil;
-    for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
-        if (scene.activationState == UISceneActivationStateForegroundActive) {
-            for (UIWindow *window in scene.windows) {
-                if (window.isKeyWindow) {
-                    keyWindow = window;
-                    break;
-                }
-            }
-            if (keyWindow) break;
-        }
-    }
-    if (!keyWindow) keyWindow = [UIApplication sharedApplication].windows.firstObject;
-    if (!keyWindow) return;
+    UIWindow *targetKeyWindow = keyWindow();
+    if (!targetKeyWindow) return;
 
-    UIViewController *rootVC = keyWindow.rootViewController;
+    UIViewController *rootVC = targetKeyWindow.rootViewController;
     while (rootVC.presentedViewController) rootVC = rootVC.presentedViewController;
 
-    UIAlertController *panel = [UIAlertController alertControllerWithTitle:@"DiscordPro"
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"DiscordPro"
                                                                    message:@"✅ Tweak activado\nEfectos funcionando"
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [panel addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-    [rootVC presentViewController:panel animated:YES completion:nil];
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [rootVC presentViewController:alert animated:YES completion:nil];
 }
 
 // ---- Gancho en el micrófono ----
