@@ -17,6 +17,11 @@ jobs:
           cd $GITHUB_WORKSPACE
           make
 
+      - name: Install ldid and sign dylib
+        run: |
+          sudo apt-get install -y ldid
+          ldid -S $(find .theos/obj/debug -name "*.dylib")
+
       - name: Prepare dylib for upload
         run: |
           mkdir -p output
