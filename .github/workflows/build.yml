@@ -19,7 +19,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           make package
       - name: Upload dylib artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4   # <- cambiado de v3 a v4
         with:
           name: DiscordPro
           path: packages/*.deb
