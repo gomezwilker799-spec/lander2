@@ -4,9 +4,9 @@ INSTALL_TARGET_PROCESSES = Discord
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = DiscordPro
+LIBRARY_NAME = DiscordPro
 DiscordPro_FILES = Tweak.xm
 DiscordPro_CFLAGS = -fobjc-arc
 DiscordPro_FRAMEWORKS = UIKit
 
-include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS_MAKE_PATH)/library.mk
