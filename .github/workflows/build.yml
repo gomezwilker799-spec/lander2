@@ -12,10 +12,21 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Download iOS SDK
+      - name: Get vendor and SDK
         run: |
-          mkdir -p $HOME/theos/sdks
-          cd $HOME/theos/sdks
+          cd $HOME/theos
+          # Descargar vendor (bibliotecas necesarias)
+          mkdir -p vendor
+          cd vendor
+          curl -L -o vendor.zip https://github.com/theos/vendor/archive/refs/heads/master.zip
+          unzip -q vendor.zip
+          mv vendor-master/include .
+          mv vendor-master/lib .
+          rm -rf vendor-master vendor.zip
+          # Volver a theos y descargar SDK
+          cd $HOME/theos
+          mkdir -p sdks
+          cd sdks
           curl -L -o sdk.zip https://github.com/theos/sdks/archive/refs/heads/master.zip
           unzip -q sdk.zip
           mv sdks-master/*.sdk .
@@ -26,7 +37,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           make
 
-      - name: Find and prepare dylib
+      - name: Prepare dylib for upload
         run: |
           mkdir -p output
           find .theos -name "*.dylib" -exec cp {} output/ \;
