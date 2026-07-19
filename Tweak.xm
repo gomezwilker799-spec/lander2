@@ -8,7 +8,7 @@ static AVAudioUnitDistortion *clipperNode = nil;
 static AVAudioMixerNode *mixerNode = nil;
 static UIButton *floatingButton = nil;
 
-// Configurar la cadena de audio (se llama una sola vez)
+// Configurar la cadena de audio
 static void setupAudio(id inputNode) {
     if (engine) return;
     engine = [inputNode valueForKey:@"engine"];
@@ -36,21 +36,22 @@ static void setupAudio(id inputNode) {
     [engine startAndReturnError:&err];
 }
 
-// Obtener la ventana clave actual de forma segura (iOS 13+)
+// Obtener la ventana clave exclusivamente con UIWindowScene (sin fallback obsoleto)
 static UIWindow *keyWindow(void) {
-    for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
-        if (scene.activationState == UISceneActivationStateForegroundActive) {
-            for (UIWindow *window in scene.windows) {
+    for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+        if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            for (UIWindow *window in windowScene.windows) {
                 if (window.isKeyWindow) {
                     return window;
                 }
             }
         }
     }
-    return [UIApplication sharedApplication].windows.firstObject;
+    return nil;
 }
 
-// Añadir el botón flotante a la ventana principal de Discord
+// Añadir el botón flotante a la ventana clave
 static void addFloatingButton() {
     if (floatingButton) return;
 
