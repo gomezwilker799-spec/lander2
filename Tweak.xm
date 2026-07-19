@@ -1,4 +1,5 @@
 #import <AVFoundation/AVFoundation.h>
+#import <UIKit/UIKit.h>
 
 %hook AVAudioInputNode
 - (void)installTapOnBus:(AVAudioNodeBus)bus
@@ -30,6 +31,17 @@
 
         NSError *err;
         [engine startAndReturnError:&err];
+
+        // Mostrar alerta de confirmación
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIAlertController *alert = [UIAlertController
+                alertControllerWithTitle:@"DiscordPro"
+                message:@"✅ Tweak activado correctamente.\nPitch + Clipper extremo funcionando."
+                preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+            UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+            [rootVC presentViewController:alert animated:YES completion:nil];
+        });
     });
 }
 %end
