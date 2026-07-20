@@ -22,7 +22,7 @@ jobs:
 
       - name: Download IPA
         run: |
-          curl -L -o Discord.ipa "https://store-na-phx-5.gofile.io/download/web/126271d6-9122-4858-9fa4-31cebd953cc4/Discord_335.0_1784070599.ipa"
+          curl -L -o Discord.ipa "https://github.com/gomezwilker799-spec/lander2/releases/download/v1.0/Discord_335.0_1784070599.ipa"
 
       - name: Extract IPA
         run: |
