@@ -1,4 +1,4 @@
-name: Build Discord Library
+name: Inject dylib into Discord IPA
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,24 +6,70 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Theos (oficial)
+      - name: Install Theos
         run: |
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Build library
+      - name: Build our dylib
         run: |
           cd $GITHUB_WORKSPACE
           make
 
-      - name: Prepare artifact
-        run: |
-          mkdir -p output
-          find .theos -name "*.dylib" -exec cp {} output/ \;
+      - name: Install Python dependencies
+        run: pip3 install macholib
 
-      - name: Upload artifact
+      - name: Download IPA
+        run: |
+          curl -L -o Discord.ipa "https://store-na-phx-5.gofile.io/download/web/126271d6-9122-4858-9fa4-31cebd953cc4/Discord_335.0_1784070599.ipa"
+
+      - name: Extract IPA
+        run: |
+          unzip Discord.ipa -d ipa_contents
+          APP=$(find ipa_contents/Payload -name "*.app" -type d | head -1)
+          echo "APP_PATH=$APP" >> $GITHUB_ENV
+          echo "APP_EXECUTABLE=$APP/$(basename "$APP" .app)" >> $GITHUB_ENV
+
+      - name: Inject dylib into binary
+        run: |
+          python3 << 'PYEOF'
+          import os, struct, macholib.MachO
+          from macholib.mach_o import LC_LOAD_DYLIB
+
+          app_path = os.environ["APP_PATH"]
+          binary = os.environ["APP_EXECUTABLE"]
+          dylib_name = "@executable_path/Frameworks/DiscordPro.dylib"
+
+          m = macholib.MachO.MachO(binary)
+          for header in m.headers:
+              name_bytes = dylib_name.encode('utf-8') + b'\x00'
+              aligned_len = (len(name_bytes) + 7) & ~7
+              cmdsize = 24 + aligned_len
+
+              cmd_data = struct.pack('<II', LC_LOAD_DYLIB, cmdsize)
+              cmd_data += struct.pack('<IIII', 24, 2, 1, 1)
+              cmd_data += name_bytes
+              cmd_data += b'\x00' * (aligned_len - len(name_bytes))
+
+              header.commands.append((LC_LOAD_DYLIB, cmd_data))
+              header.changed = True
+          m.write()
+          PYEOF
+
+      - name: Copy dylib into Frameworks
+        run: |
+          mkdir -p "$APP_PATH/Frameworks"
+          cp $(find .theos -name "*.dylib" | head -1) "$APP_PATH/Frameworks/DiscordPro.dylib"
+
+      - name: Repackage IPA
+        run: |
+          cd ipa_contents
+          zip -r ../Discord_patched.ipa Payload
+          cd ..
+
+      - name: Upload patched IPA
         uses: actions/upload-artifact@v4
         with:
-          name: DiscordPro-dylib
-          path: output/
+          name: Discord-patched
+          path: Discord_patched.ipa
