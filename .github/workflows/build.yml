@@ -34,29 +34,30 @@ jobs:
       - name: Inject dylib into binary
         run: |
           python3 << 'PYEOF'
-          import os, struct, tempfile, shutil
+          import os, tempfile, shutil
           import macholib.MachO
-          from macholib.mach_o import LC_LOAD_DYLIB
+          from macholib.mach_o import LC_LOAD_DYLIB, dylib_command
 
           app_path = os.environ["APP_PATH"]
           binary = os.environ["APP_EXECUTABLE"]
           dylib_name = "@executable_path/Frameworks/DiscordPro.dylib"
 
+          # Cargar el binario
           m = macholib.MachO.MachO(binary)
 
+          # Añadir el comando LC_LOAD_DYLIB a cada header
           for header in m.headers:
               name_bytes = dylib_name.encode('utf-8') + b'\x00'
               aligned_len = (len(name_bytes) + 7) & ~7
               cmdsize = 24 + aligned_len
 
-              cmd_data = struct.pack('<II', LC_LOAD_DYLIB, cmdsize)
-              cmd_data += struct.pack('<IIII', 24, 2, 1, 1)
-              cmd_data += name_bytes
-              cmd_data += b'\x00' * (aligned_len - len(name_bytes))
-
-              header.commands.append((LC_LOAD_DYLIB, None, cmd_data))
+              # Crear el objeto de comando dylib
+              cmd = dylib_command(LC_LOAD_DYLIB, cmdsize, name_bytes, 2, 1, 1)
+              # Añadirlo a la lista de comandos del header
+              header.commands.append(cmd)
               header.changed = True
 
+          # Guardar en archivo temporal y reemplazar el original
           with tempfile.NamedTemporaryFile(delete=False, dir=os.path.dirname(binary)) as f:
               m.write(f)
               tmpname = f.name
