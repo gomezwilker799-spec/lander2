@@ -1,4 +1,4 @@
-name: Inject dylib into Discord IPA
+name: Build, Patch and Inject dylib
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -17,6 +17,19 @@ jobs:
           cd $GITHUB_WORKSPACE
           make
 
+      - name: Download and compile dylib-patcher
+        run: |
+          git clone https://github.com/ProcursusTeam/dylib-patcher.git
+          cd dylib-patcher
+          cargo build --release
+          cp target/release/dylib-patcher $GITHUB_WORKSPACE/
+          cd ..
+
+      - name: Patch our dylib
+        run: |
+          DYLIB=$(find .theos -name "*.dylib" | head -1)
+          ./dylib-patcher "$DYLIB" -o DiscordPro_patched.dylib
+
       - name: Download IPA
         run: |
           curl -L -o Discord.ipa "https://github.com/gomezwilker799-spec/lander2/releases/download/v1.0/Discord_335.0_1784070599.ipa"
@@ -27,10 +40,10 @@ jobs:
           APP=$(find ipa_contents/Payload -name "*.app" -type d | head -1)
           echo "APP_PATH=$APP" >> $GITHUB_ENV
 
-      - name: Copy dylib into Frameworks
+      - name: Copy patched dylib into Frameworks
         run: |
           mkdir -p "$APP_PATH/Frameworks"
-          cp $(find .theos -name "*.dylib" | head -1) "$APP_PATH/Frameworks/DiscordPro.dylib"
+          cp DiscordPro_patched.dylib "$APP_PATH/Frameworks/DiscordPro.dylib"
 
       - name: Modify Info.plist to load dylib
         run: |
@@ -43,7 +56,6 @@ jobs:
           with open(plist_path, "rb") as f:
               plist = plistlib.load(f)
 
-          # Añadir LSEnvironment si no existe
           if "LSEnvironment" not in plist:
               plist["LSEnvironment"] = {}
           plist["LSEnvironment"]["DYLD_INSERT_LIBRARIES"] = "@executable_path/Frameworks/DiscordPro.dylib"
