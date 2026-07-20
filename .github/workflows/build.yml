@@ -23,8 +23,8 @@ jobs:
           DYLIB=$(find .theos -name "*.dylib" | head -1)
           # Cambiar el nombre de instalación al camino esperado en la app
           $THEOS/toolchain/linux/iphone/bin/install_name_tool -id "@executable_path/Frameworks/DiscordPro.dylib" "$DYLIB"
-          # Firmar el dylib (esto es crucial para que iOS lo acepte)
-          $THEOS/bin/ldid -S "$DYLIB"
+          # Firmar el dylib con ldid del toolchain
+          $THEOS/toolchain/linux/iphone/bin/ldid -S "$DYLIB"
 
       - name: Download IPA
         run: |
