@@ -17,9 +17,6 @@ jobs:
           cd $GITHUB_WORKSPACE
           make
 
-      - name: Install Python dependencies
-        run: pip3 install macholib
-
       - name: Download IPA
         run: |
           curl -L -o Discord.ipa "https://github.com/gomezwilker799-spec/lander2/releases/download/v1.0/Discord_335.0_1784070599.ipa"
@@ -29,46 +26,31 @@ jobs:
           unzip Discord.ipa -d ipa_contents
           APP=$(find ipa_contents/Payload -name "*.app" -type d | head -1)
           echo "APP_PATH=$APP" >> $GITHUB_ENV
-          echo "APP_EXECUTABLE=$APP/$(basename "$APP" .app)" >> $GITHUB_ENV
-
-      - name: Inject dylib into binary
-        run: |
-          python3 << 'PYEOF'
-          import os, tempfile, shutil
-          import macholib.MachO
-          from macholib.mach_o import LC_LOAD_DYLIB, dylib_command
-
-          app_path = os.environ["APP_PATH"]
-          binary = os.environ["APP_EXECUTABLE"]
-          dylib_name = "@executable_path/Frameworks/DiscordPro.dylib"
-
-          # Cargar el binario
-          m = macholib.MachO.MachO(binary)
-
-          # Añadir el comando LC_LOAD_DYLIB a cada header
-          for header in m.headers:
-              name_bytes = dylib_name.encode('utf-8') + b'\x00'
-              aligned_len = (len(name_bytes) + 7) & ~7
-              cmdsize = 24 + aligned_len
-
-              # Crear el comando con name_offset = 24
-              cmd = dylib_command(LC_LOAD_DYLIB, cmdsize, 24, 2, 1, 1)
-              cmd.name = dylib_name  # asigna el nombre como string
-
-              header.commands.append(cmd)
-              header.changed = True
-
-          # Guardar en archivo temporal y reemplazar el original
-          with tempfile.NamedTemporaryFile(delete=False, dir=os.path.dirname(binary)) as f:
-              m.write(f)
-              tmpname = f.name
-          shutil.move(tmpname, binary)
-          PYEOF
 
       - name: Copy dylib into Frameworks
         run: |
           mkdir -p "$APP_PATH/Frameworks"
           cp $(find .theos -name "*.dylib" | head -1) "$APP_PATH/Frameworks/DiscordPro.dylib"
+
+      - name: Modify Info.plist to load dylib
+        run: |
+          python3 << 'PYEOF'
+          import os, plistlib
+
+          app_path = os.environ["APP_PATH"]
+          plist_path = os.path.join(app_path, "Info.plist")
+
+          with open(plist_path, "rb") as f:
+              plist = plistlib.load(f)
+
+          # Añadir LSEnvironment si no existe
+          if "LSEnvironment" not in plist:
+              plist["LSEnvironment"] = {}
+          plist["LSEnvironment"]["DYLD_INSERT_LIBRARIES"] = "@executable_path/Frameworks/DiscordPro.dylib"
+
+          with open(plist_path, "wb") as f:
+              plistlib.dump(plist, f)
+          PYEOF
 
       - name: Repackage IPA
         run: |
