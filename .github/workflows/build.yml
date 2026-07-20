@@ -51,9 +51,10 @@ jobs:
               aligned_len = (len(name_bytes) + 7) & ~7
               cmdsize = 24 + aligned_len
 
-              # Crear el objeto de comando dylib
-              cmd = dylib_command(LC_LOAD_DYLIB, cmdsize, name_bytes, 2, 1, 1)
-              # Añadirlo a la lista de comandos del header
+              # Crear el comando con name_offset = 24
+              cmd = dylib_command(LC_LOAD_DYLIB, cmdsize, 24, 2, 1, 1)
+              cmd.name = dylib_name  # asigna el nombre como string
+
               header.commands.append(cmd)
               header.changed = True
 
