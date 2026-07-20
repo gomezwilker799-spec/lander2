@@ -7,7 +7,7 @@ LIBRARY_NAME = DiscordPro
 DiscordPro_FILES = Tweak.xm
 DiscordPro_CFLAGS = -fobjc-arc
 DiscordPro_FRAMEWORKS = CoreFoundation
-DiscordPro_INSTALL_PATH = @executable_path/Frameworks
-DiscordPro_LDFLAGS = -Wl,-rpath,@executable_path/Frameworks
+# Apuntar a la raíz del ejecutable (donde ESign inyecta el dylib)
+DiscordPro_INSTALL_PATH = @executable_path
 
 include $(THEOS_MAKE_PATH)/library.mk
