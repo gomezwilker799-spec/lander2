@@ -1,4 +1,4 @@
-name: Build and Sign dylib only
+name: Build dylib for root injection
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -17,17 +17,19 @@ jobs:
           cd $GITHUB_WORKSPACE
           make
 
-      - name: Sign dylib
+      - name: Sign and prepare for root injection
         run: |
           export THEOS=$HOME/theos
           DYLIB=$(find .theos -name "*.dylib" | head -1)
-          $THEOS/toolchain/linux/iphone/bin/install_name_tool -id "@executable_path/Frameworks/DiscordPro.dylib" "$DYLIB"
+          # Ajustar install name para que apunte a la raíz del ejecutable
+          $THEOS/toolchain/linux/iphone/bin/install_name_tool -id "@executable_path/DiscordPro.dylib" "$DYLIB"
+          # Firmar con los entitlements
           $THEOS/toolchain/linux/iphone/bin/ldid -SEntitlements.plist "$DYLIB"
-          mkdir -p output
-          cp "$DYLIB" output/DiscordPro.dylib
+          # Copiar el archivo listo para subir
+          cp "$DYLIB" DiscordPro_root.dylib
 
       - name: Upload dylib artifact
         uses: actions/upload-artifact@v4
         with:
           name: DiscordPro-dylib
-          path: output/DiscordPro.dylib
+          path: DiscordPro_root.dylib
