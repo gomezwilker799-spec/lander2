@@ -1,4 +1,4 @@
-name: Build dylib for root injection
+name: Build dylib with SDK 15.6
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -12,24 +12,30 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
+      - name: Download iPhoneOS 15.6 SDK
+        run: |
+          mkdir -p $HOME/theos/sdks
+          cd $HOME/theos/sdks
+          curl -L -o sdk.zip https://github.com/theos/sdks/archive/refs/heads/master.zip
+          unzip -q sdk.zip
+          # Mover SOLO el SDK 15.6 a la carpeta de SDKs
+          mv sdks-master/iPhoneOS15.6.sdk .
+          rm -rf sdks-master sdk.zip
+          # Verificar que el SDK se instaló
+          ls -la iPhoneOS15.6.sdk
+
       - name: Build dylib
         run: |
           cd $GITHUB_WORKSPACE
           make
 
-      - name: Sign and prepare for root injection
+      - name: Prepare artifact
         run: |
-          export THEOS=$HOME/theos
-          DYLIB=$(find .theos -name "*.dylib" | head -1)
-          # Ajustar install name para que apunte a la raíz del ejecutable
-          $THEOS/toolchain/linux/iphone/bin/install_name_tool -id "@executable_path/DiscordPro.dylib" "$DYLIB"
-          # Firmar con los entitlements
-          $THEOS/toolchain/linux/iphone/bin/ldid -SEntitlements.plist "$DYLIB"
-          # Copiar el archivo listo para subir
-          cp "$DYLIB" DiscordPro_root.dylib
+          mkdir -p output
+          find .theos -name "*.dylib" -exec cp {} output/ \;
 
-      - name: Upload dylib artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DiscordPro-dylib
-          path: DiscordPro_root.dylib
+          name: TweakCompleto-dylib
+          path: output/
